@@ -9,3 +9,5 @@ __pycache__/
 mongo_data/
 .git
 .gitignore
+plot.py
+grafico_cache.png

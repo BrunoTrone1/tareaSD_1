@@ -33,7 +33,8 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: ["redis-server", "--bind", "0.0.0.0", "--protected-mode", "no"]
+    command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu
+
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -89,7 +90,7 @@ services:
       - DISTRIBUCION=poisson
       - LAMBDA=2
       - INTERVALO_UNIFORME=1
-      - CACHE_POLICY=LRU
+      - CACHE_POLICY=LFU
       - CACHE_CAPACITY=100
       - REDIS_HOST=redis
       - REDIS_PORT=6379

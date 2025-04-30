@@ -46,14 +46,11 @@ tareaSD_1/
 │ └── almacenamiento.py 
 ├── cache/ 
 │ └── cache.py 
-├── config/ 
-│ └── config.py 
 ├── generador_trafico/ 
 │ └── generador_trafico.py 
 ├── scraper/ 
 │ └── scraper.py 
 ├── waze_alerts.json 
-├── .env.example 
 ├── Dockerfile 
 ├── docker-compose.yml 
 ├── requirements.txt 
@@ -67,6 +64,11 @@ tareaSD_1/
 - Docker
 - Docker Compose
 - Python:3.13.3-slim
+- Redis
+- Redis Commander
+- MongoDB
+- MongoDB Express
+- Conocimientos basicos de programacion
 
 ---
 
@@ -92,6 +94,10 @@ Esto levantará automáticamente:
 - Almacenamiento
 
 - Generador de tráfico
+
+Cabe destacar que al comienzo no se tendran datos, por lo que se recomienda ejecutar el `scraper.py` para generar algunos eventos sobre los cuales trabajar.
+
+---
 
 ## Monitoreo de servicios
 

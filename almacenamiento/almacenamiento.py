@@ -3,15 +3,19 @@ import os
 import time
 from pymongo import MongoClient
 from datetime import datetime
+import logging
 
-# Configuraciones desde variables de entorno
+# Configuración de logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s - %(message)s')
+
+# Configuración desde entorno
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:admin@localhost:27017/?authSource=admin")
 MONGO_DB = os.environ.get("MONGO_DB", "waze_db")
 MONGO_COLLECTION = os.environ.get("MONGO_COLLECTION", "alerts")
 JSON_FILE_PATH = os.environ.get("JSON_FILE_PATH", "waze_alerts.json")
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 30))
 
-# Conexión a MongoDB
+# Conexión
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]
 collection = db[MONGO_COLLECTION]
@@ -22,7 +26,7 @@ def cargar_alertas():
             data = json.load(f)
         return data
     except Exception as e:
-        print(f"[ERROR] No se pudo cargar el archivo JSON: {e}")
+        logging.error(f"No se pudo cargar el archivo JSON: {e}")
         return []
 
 def insertar_alertas_nuevas():
@@ -37,14 +41,17 @@ def insertar_alertas_nuevas():
             try:
                 collection.insert_one(alert)
                 nuevas += 1
+                logging.info(f"Insertada alerta {alert_uuid}")
             except Exception as e:
-                print(f"[ERROR] Al insertar alerta {alert_uuid}: {e}")
+                logging.error(f"Al insertar alerta {alert_uuid}: {e}")
+        else:
+            logging.debug(f"Alerta ya existente: {alert_uuid}")
     return nuevas
 
 if __name__ == "__main__":
-    print("[INFO] Servicio de almacenamiento iniciado.")
+    logging.info("Servicio de almacenamiento iniciado.")
     while True:
-        print("[INFO] Chequeando si hay nuevas alertas para insertar...")
+        logging.info("Chequeando si hay nuevas alertas para insertar...")
         nuevas = insertar_alertas_nuevas()
-        print(f"[INFO] Se insertaron {nuevas} alertas nuevas.")
+        logging.info(f"Se insertaron {nuevas} alertas nuevas.")
         time.sleep(CHECK_INTERVAL)

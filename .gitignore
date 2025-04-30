@@ -3,3 +3,5 @@ __pycache__/
 mongo_data/
 .env 
 waze_alerts.json
+plot.py
+grafico_cache.png
