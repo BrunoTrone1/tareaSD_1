@@ -1,20 +1,150 @@
-# Proyecto: Tarea SD 1
+# Plataforma de Análisis de Tráfico - Sistemas Distribuidos
 
-## Descripción
-Este proyecto es parte de la tarea 1 de la asignatura de Sistemas Distribuidos. Su objetivo es implementar y demostrar conceptos clave relacionados con sistemas distribuidos.
+Este proyecto es una simulación de una plataforma de análisis de tráfico urbano basada en datos de Waze. Implementa una arquitectura distribuida y modular, con componentes que permiten recolección, almacenamiento, generación sintética y caching de eventos de tráfico, todo contenido en servicios Docker.
+
+---
+
+## Contenidos
+
+- [Arquitectura del sistema](#arquitectura-del-sistema)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Requisitos](#requisitos)
+- [Variables de entorno](#variables-de-entorno)
+- [Instrucciones de ejecución](#instrucciones-de-ejecución)
+- [Monitoreo de servicios](#monitoreo-de-servicios)
+- [Pruebas y validaciones](#pruebas-y-validaciones)
+- [Notas importantes](#notas-importantes)
+- [Créditos](#créditos)
+
+---
+
+##  Arquitectura del sistema
+
+1. **Scraper**: Extrae eventos de tráfico desde datos de Waze (reales o simulados).
+
+2. **Almacenamiento**: Guarda los eventos obtenidos en MongoDB.
+
+3. **Generador de tráfico**: Toma eventos aleatorios y los emite periódicamente a una caché Redis usando distribuciones Poisson o uniforme.
+
+4. **Sistema de Caché**: Implementado sobre Redis. Permite políticas de reemplazo LFU o LRU.
+
+---
+
+## Tecnologías utilizadas:
+- **MongoDB**: Base de datos NoSQL para almacenar eventos de tráfico.
+- **Redis**: Sistema de caché para mejorar la eficiencia en la recuperación de datos.
+- **Python**: Lenguaje de programación principal para el scraping, procesamiento de eventos y generación de tráfico.
+- **Docker**: Contenedores para ejecutar los componentes de manera aislada.
+- **Redis-Commander**: Interfaz web para administrar Redis.
+
+---
+
+## Estructura del proyecto
+```
+tareaSD_1/ 
+├── almacenamiento/ 
+│ └── almacenamiento.py 
+├── cache/ 
+│ └── cache.py 
+├── config/ 
+│ └── config.py 
+├── generador_trafico/ 
+│ └── generador_trafico.py 
+├── scraper/ 
+│ └── scraper.py 
+├── waze_alerts.json 
+├── .env.example 
+├── Dockerfile 
+├── docker-compose.yml 
+├── requirements.txt 
+└── README.md
+```
+
+---
 
 ## Requisitos
 
+- Docker
+- Docker Compose
+- Python:3.13.3-slim
 
-## Instalación
+---
 
-    ```
+## Variables de entorno
+
+El archivo `.env` debe contener lo siguiente (usa `.env.example` como base):
+
+```env
+# Mongo
+MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
+MONGO_DB=waze_db
+MONGO_COLLECTION=alerts
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+
+# Caché
+CACHE_POLICY=LRU        # O FIFO
+CACHE_CAPACITY=100
+
+# Generador de tráfico
+DISTRIBUCION=poisson    # O uniforme
+LAMBDA=0.5              # Solo si poisson
+INTERVALO_UNIFORME=1.0  # Solo si uniforme
+
+```
+
+## Instrucciones de ejecución
+1. Clonar el repositorio
+
+`git clone https://github.com/BrunoTrone1/tareaSD_1.git`
+
+`cd tareaSD_1`
+
+2. Ejecutar la plataforma
+
+`docker-compose up --build`
+
+Esto levantará automáticamente:
+
+- MongoDB + Mongo Express
+
+- Redis + Redis Commander
+
+- Scraper
+
+- Almacenamiento
+
+- Generador de tráfico
+
+## Monitoreo de servicios
+
+- Mongo Express	`http://localhost:8081`
+
+- Redis Commander `http://localhost:8082`
+
+---
 
 ## Uso
 
+El sistema empezará a funcionar automáticamente una vez que todos los contenedores estén levantados. El generador de tráfico comenzará a obtener eventos de la base de datos y los enviará a Redis, simulando un tráfico continuo de alertas. Los eventos se almacenarán en la caché de Redis y, si se solicitan nuevamente, se podrán obtener de la caché, lo que mejora la eficiencia.
 
-## Estructura del Proyecto
+---
 
+## Notas
+
+- Asegúrate de que tu red local permita el acceso a los puertos 8081 (Mongo Express) y 8082 (Redis Commander).
+
+- Si experimentas problemas con el tamaño de la caché, puedes ajustar los parámetros de CACHE_CAPACITY.
+
+---
+
+## TODO
+
+- Manejar inserciones automaticas del scraper a la DB!
 
 ## Contribuciones
-Las contribuciones son bienvenidas. Por favor, abre un issue o envía un pull request.
+
+Si deseas contribuir, por favor abre un pull request con tus cambios. Para nuevos desarrollos o mejoras, asegúrate de crear una nueva rama con un nombre descriptivo.

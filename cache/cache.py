@@ -1,62 +1,89 @@
 import redis
 import json
 import time
+from datetime import datetime
 
 class SistemaCacheRedis:
     def __init__(self, policy="LRU", capacity=100, host='localhost', port=6379, db=0):
         self.capacity = capacity
         self.policy = policy.upper()
-        self.r = redis.Redis(host=host, port=port, db=db, decode_responses=True)
-        self.event_access_times = {}  # Solo si queremos manualmente LRU/LFU
+        self.redis = redis.Redis(host=host, port=port, db=db, decode_responses=True)
+        self.uso = {}  # Guarda el tiempo o frecuencia de uso
 
-    def _evict_if_needed(self):
-        keys = self.r.keys()
-        if len(keys) >= self.capacity:
-            if self.policy == "LRU":
-                # Usamos la última vez que se accedió
-                oldest_key = min(self.event_access_times, key=lambda k: self.event_access_times[k])
-            elif self.policy == "LFU":
-                # Usamos la cantidad de accesos
-                oldest_key = min(self.event_access_times, key=lambda k: self.event_access_times[k][1])
-            else:
-                raise ValueError("Política inválida")
+        # Contadores para estadísticas
+        self.hits = 0
+        self.misses = 0
 
-            self.r.delete(oldest_key)
-            del self.event_access_times[oldest_key]
-            print(f"[CACHE] {self.policy} - Evento eliminado: {oldest_key}")
+    def _evict(self):
+        if len(self.uso) < self.capacity:
+            return
+        
+        if self.policy == "LRU":
+            key_a_borrar = min(self.uso, key=self.uso.get)
+        elif self.policy == "LFU":
+            key_a_borrar = min(self.uso, key=lambda k: self.uso[k][1])
+        else:
+            raise ValueError("Política no válida: usa LRU o LFU")
+
+        self.redis.delete(key_a_borrar)
+        del self.uso[key_a_borrar]
+        print(f"[CACHE] Eliminado {key_a_borrar} por política {self.policy}")
 
     def recibir_evento(self, evento):
-        key = evento["uuid"]
-        value = json.dumps(evento)  # Redis almacena strings
-        self._evict_if_needed()
-        self.r.set(key, value)
+        if "_id" in evento:
+            evento["id"] = str(evento["_id"])
+            evento["_id"] = str(evento["_id"])
+        key = evento["id"]
+        value = json.dumps(evento)
 
-        # Actualizamos metadata para LRU/LFU
+        self._evict()
+        self.redis.set(key, value)
+
         now = time.time()
         if self.policy == "LRU":
-            self.event_access_times[key] = now
+            self.uso[key] = now
         elif self.policy == "LFU":
-            if key in self.event_access_times:
-                count = self.event_access_times[key][1] + 1
+            if key in self.uso:
+                count = self.uso[key][1] + 1
             else:
                 count = 1
-            self.event_access_times[key] = (now, count)
+            self.uso[key] = (now, count)
 
-        print(f"[CACHE] Evento almacenado: {key}")
+        print(f"[CACHE] Guardado evento {key}")
 
     def get_evento(self, key):
-        value = self.r.get(key)
-        if value:
-            now = time.time()
+        data = self.redis.get(key)
+        if data:
+            self.hits += 1
             if self.policy == "LRU":
-                self.event_access_times[key] = now
+                self.uso[key] = time.time()
             elif self.policy == "LFU":
-                if key in self.event_access_times:
-                    count = self.event_access_times[key][1] + 1
+                if key in self.uso:
+                    count = self.uso[key][1] + 1
                 else:
                     count = 1
-                self.event_access_times[key] = (now, count)
-
-            return json.loads(value)
+                self.uso[key] = (time.time(), count)
+            return json.loads(data)
         else:
+            self.misses += 1
             return None
+
+    def convertir_datetime(self, data):
+        if isinstance(data, dict):
+            return {key: self.convertir_datetime(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [self.convertir_datetime(item) for item in data]
+        elif isinstance(data, datetime):
+            return data.isoformat()
+        else:
+            return data
+
+    def estadisticas(self):
+        total = self.hits + self.misses
+        hit_rate = (self.hits / total) * 100 if total > 0 else 0
+        return {
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate (%)": round(hit_rate, 2),
+            "total_requests": total
+        }

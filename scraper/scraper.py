@@ -90,19 +90,22 @@ def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, 
 
 # -------------------- Configuración --------------------
 
-# Coordenadas de la Región Metropolitana, por ejemplo
+# Coordenadas de la Región Metropolitana, Gran Santiago, Chile
 TOP = -33.3
-BOTTOM = -33.7
-LEFT = -70.9
+BOTTOM = -33.65
+LEFT = -70.85
 RIGHT = -70.5
 
-STEP_LAT = 0.009  # Tamaño de celda en latitud (~2 km aprox)
-STEP_LON = 0.01075  # Tamaño de celda en longitud (~2 km aprox)
+
+
+STEP_LAT = 0.005  # ~550 metros en latitud
+STEP_LON = 0.006  # ~500-600 metros en longitud
+
 
 FILENAME = "waze_alerts.json"
 
 # -------------------- Ejecución --------------------
 
-alerts = crawl_area(TOP, BOTTOM, LEFT, RIGHT, STEP_LAT, STEP_LON, delay=60, filename=FILENAME)
+alerts = crawl_area(TOP, BOTTOM, LEFT, RIGHT, STEP_LAT, STEP_LON, delay=2, filename=FILENAME)
 print(f"Total de alertas recolectadas: {len(alerts)}")
 print(f"Datos finales guardados en {FILENAME}")

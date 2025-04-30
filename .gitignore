@@ -1,11 +1,5 @@
 __pycache__/
 .venv/
-*.log
 mongo_data/
 .env 
-waze_alerts.json 
-dockerfile
-docker-compose.yml
-requirements.txt
-.dockerignore
-
+waze_alerts.json
