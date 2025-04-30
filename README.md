@@ -70,32 +70,6 @@ tareaSD_1/
 
 ---
 
-## Variables de entorno
-
-El archivo `.env` debe contener lo siguiente (usa `.env.example` como base):
-
-```env
-# Mongo
-MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
-MONGO_DB=waze_db
-MONGO_COLLECTION=alerts
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_DB=0
-
-# Caché
-CACHE_POLICY=LRU        # O FIFO
-CACHE_CAPACITY=100
-
-# Generador de tráfico
-DISTRIBUCION=poisson    # O uniforme
-LAMBDA=0.5              # Solo si poisson
-INTERVALO_UNIFORME=1.0  # Solo si uniforme
-
-```
-
 ## Instrucciones de ejecución
 1. Clonar el repositorio
 
