@@ -62,15 +62,20 @@ services:
   almacenamiento:
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: almacenamiento
-    restart: on-failure
+    volumes:
+      - ./waze_alerts.json:/app/waze_alerts.json:ro
+      - ./almacenamiento:/app/almacenamiento
     environment:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
       - MONGO_DB=waze_db
       - MONGO_COLLECTION=alerts
-    command: ["python", "-m", "almacenamiento.almacenamiento"]
+      - JSON_FILE_PATH=waze_alerts.json
+      - CHECK_INTERVAL=30
     depends_on:
       - mongo
+    command: ["python", "almacenamiento/almacenamiento.py"]
 
   generador_trafico:
     build:
