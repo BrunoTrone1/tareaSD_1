@@ -3,18 +3,18 @@
 Este proyecto es una simulación de una plataforma de análisis de tráfico urbano basada en datos de Waze. Implementa una arquitectura distribuida y modular, con componentes que permiten recolección, almacenamiento, generación sintética y caching de eventos de tráfico, todo contenido en servicios Docker.
 
 ---
-
 ## Contenidos
 
 - [Arquitectura del sistema](#arquitectura-del-sistema)
+- [Tecnologías utilizadas](#tecnologías-utilizadas)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Requisitos](#requisitos)
-- [Variables de entorno](#variables-de-entorno)
 - [Instrucciones de ejecución](#instrucciones-de-ejecución)
 - [Monitoreo de servicios](#monitoreo-de-servicios)
-- [Pruebas y validaciones](#pruebas-y-validaciones)
-- [Notas importantes](#notas-importantes)
-- [Créditos](#créditos)
+- [Uso](#uso)
+- [Notas](#notas)
+- [TODO](#todo)
+- [Contribuciones](#contribuciones)
 
 ---
 
