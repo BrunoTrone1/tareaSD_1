@@ -13,7 +13,6 @@ Este proyecto es una simulación de una plataforma de análisis de tráfico urba
 - [Monitoreo de servicios](#monitoreo-de-servicios)
 - [Uso](#uso)
 - [Notas](#notas)
-- [TODO](#todo)
 - [Contribuciones](#contribuciones)
 
 ---
@@ -95,7 +94,7 @@ Esto levantará automáticamente:
 
 - Generador de tráfico
 
-Cabe destacar que al comienzo no se tendran datos, por lo que se recomienda ejecutar el `scraper.py` para generar algunos eventos sobre los cuales trabajar.
+Cabe destacar que al comienzo no se tendran datos, por lo que se recomienda ejecutar el `scraper.py` para generar algunos eventos sobre los cuales trabajar, o cargar un archivo `.json` con datos ya generados.
 
 ---
 
@@ -111,7 +110,11 @@ Cabe destacar que al comienzo no se tendran datos, por lo que se recomienda ejec
 
 El sistema empezará a funcionar automáticamente una vez que todos los contenedores estén levantados. El generador de tráfico comenzará a obtener eventos de la base de datos y los enviará a Redis, simulando un tráfico continuo de alertas. Los eventos se almacenarán en la caché de Redis y, si se solicitan nuevamente, se podrán obtener de la caché, lo que mejora la eficiencia.
 
-Para elegir el tipo de distribucion que sigue el generador de trafico, asi como el tipo de politica de reemplazo utilizada por redis, se han de configurar en `docker-compose.yml` como las variables de `enviroment` que se le pasan.
+Para elegir el tipo de distribucion que sigue el generador de trafico, asi como el tipo de politica de reemplazo utilizada por redis, se han de configurar en `docker-compose.yml` como las variables de `enviroment` del generador de trafico.
+
+En el caso de querer cambiar especificaciones de Redis, revisar en el `docker-compose.yml` la linea de `command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu`, con tus especificaciones. Por ejemplo `allkeys-lfu` para una politica LFU.
+
+Para ver logs especificos de cada modulo utilizar el comando `docker logs <nombre>`.
 
 ---
 
@@ -119,7 +122,7 @@ Para elegir el tipo de distribucion que sigue el generador de trafico, asi como 
 
 - Asegúrate de que tu red local permita el acceso a los puertos 8081 (Mongo Express) y 8082 (Redis Commander).
 
-- Si experimentas problemas con el tamaño de la caché, puedes ajustar los parámetros de CACHE_CAPACITY.
+- Si experimentas problemas con el tamaño de la caché, distribucion o similar, recuerda revisar las variables y sus valores en el `docker-compose.yml`.
 
 ---
 
