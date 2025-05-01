@@ -1,22 +1,22 @@
 services:
-  mongo:
+  mongo:  # Base de datos principal (MongoDB)
     image: mongo:latest
     container_name: mongo
     restart: always
     ports:
-      - "27017:27017"
+      - "27017:27017"  # Puerto expuesto localmente
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
     volumes:
-      - mongo_data:/data/db
+      - mongo_data:/data/db  # Volumen persistente
 
-  mongo-express:
+  mongo-express:  # Interfaz web para MongoDB
     image: mongo-express:latest
     container_name: mongo-express
     restart: always
     ports:
-      - "8081:8081"
+      - "8081:8081"  # Acceso web a la interfaz
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: admin
@@ -27,16 +27,15 @@ services:
     depends_on:
       - mongo
 
-  redis:
+  redis:  # Sistema de cache Redis
     image: redis:latest
     container_name: redis
     restart: always
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu
+    command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu  # Politica de reemplazo LFU
 
-
-  redis-commander:
+  redis-commander:  # Interfaz web para Redis
     image: rediscommander/redis-commander:latest
     container_name: redis-commander
     restart: always
@@ -47,7 +46,7 @@ services:
     depends_on:
       - redis
 
-  scraper:
+  scraper:  # Servicio que descarga datos desde la API de Waze
     build:
       context: .
     container_name: scraper
@@ -60,13 +59,13 @@ services:
     depends_on:
       - mongo
 
-  almacenamiento:
+  almacenamiento:  # Servicio que inserta alertas nuevas en MongoDB
     build:
       context: .
       dockerfile: Dockerfile
     container_name: almacenamiento
     volumes:
-      - ./waze_alerts.json:/app/waze_alerts.json:ro
+      - ./waze_alerts.json:/app/waze_alerts.json:ro  # Monta el archivo de alertas
       - ./almacenamiento:/app/almacenamiento
     environment:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
@@ -78,7 +77,7 @@ services:
       - mongo
     command: ["python", "almacenamiento/almacenamiento.py"]
 
-  generador_trafico:
+  generador_trafico:  # Genera trafico hacia Redis desde Mongo
     build:
       context: .
     container_name: generador_trafico
@@ -101,4 +100,4 @@ services:
       - redis
 
 volumes:
-  mongo_data:
+  mongo_data:  # Volumen persistente para los datos de MongoDB

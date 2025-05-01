@@ -111,6 +111,8 @@ Cabe destacar que al comienzo no se tendran datos, por lo que se recomienda ejec
 
 El sistema empezará a funcionar automáticamente una vez que todos los contenedores estén levantados. El generador de tráfico comenzará a obtener eventos de la base de datos y los enviará a Redis, simulando un tráfico continuo de alertas. Los eventos se almacenarán en la caché de Redis y, si se solicitan nuevamente, se podrán obtener de la caché, lo que mejora la eficiencia.
 
+Para elegir el tipo de distribucion que sigue el generador de trafico, asi como el tipo de politica de reemplazo utilizada por redis, se han de configurar en `docker-compose.yml` como las variables de `enviroment` que se le pasan.
+
 ---
 
 ## Notas
@@ -120,10 +122,6 @@ El sistema empezará a funcionar automáticamente una vez que todos los contened
 - Si experimentas problemas con el tamaño de la caché, puedes ajustar los parámetros de CACHE_CAPACITY.
 
 ---
-
-## TODO
-
-- Manejar inserciones automaticas del scraper a la DB!
 
 ## Contribuciones
 

@@ -4,9 +4,10 @@ import time
 import os
 import logging
 
-# Configuración de logging
+# Configuracion del logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s - %(message)s')
 
+# Funcion para obtener alertas desde la API de Waze usando coordenadas
 def get_alerts(top, bottom, left, right):
     url = "https://www.waze.com/live-map/api/georss"
     params = {
@@ -32,34 +33,39 @@ def get_alerts(top, bottom, left, right):
     if response.status_code == 200:
         return response.json()
     else:
-        logging.error(f"Error {response.status_code} al obtener datos para región: {top}, {bottom}, {left}, {right}")
+        logging.error(f"Error {response.status_code} al obtener datos para region: {top}, {bottom}, {left}, {right}")
         return None
 
+# Limpia una alerta eliminando comentarios innecesarios
 def clean_alert(alert):
     alert.pop('comments', None)
     return alert
 
+# Guarda las alertas en un archivo JSON
 def save_alerts_to_json(alerts, filename="waze_alerts.json"):
     with open(filename, "w", encoding='utf-8') as f:
         json.dump(alerts, f, ensure_ascii=False, indent=4)
     logging.info(f"Datos guardados en {filename} (total {len(alerts)} alertas)")
 
+# Recorre un area geográfica dividida en celdas, descargando alertas por zona
 def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, filename="waze_alerts.json"):
     all_alerts = []
 
+    # Si el archivo ya existe, lo carga
     if os.path.exists(filename):
         with open(filename, "r", encoding='utf-8') as f:
             try:
                 all_alerts = json.load(f)
                 logging.info(f"Se cargaron {len(all_alerts)} alertas previamente guardadas.")
             except json.JSONDecodeError:
-                logging.warning("Archivo JSON existente estaba vacío o corrupto, empezando desde cero.")
+                logging.warning("Archivo JSON existente estaba vacio o corrupto, empezando desde cero.")
 
     try:
         lat = bottom
         while lat < top:
             lon = left
             while lon < right:
+                # Define los bordes de la celda actual
                 cell_top = min(lat + step_lat, top)
                 cell_bottom = lat
                 cell_left = lon
@@ -79,7 +85,7 @@ def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, 
             lat += step_lat
 
     except KeyboardInterrupt:
-        logging.warning("Interrupción manual detectada. Guardando progreso...")
+        logging.warning("Interrupcion manual detectada. Guardando progreso...")
         save_alerts_to_json(all_alerts, filename)
     except Exception as e:
         logging.error(f"Error inesperado: {e}. Guardando progreso...")
@@ -87,7 +93,7 @@ def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, 
 
     return all_alerts
 
-# Configuración
+# Parametros de configuracion de la zona a scrapear
 TOP = -33.3
 BOTTOM = -33.65
 LEFT = -70.85
@@ -96,7 +102,7 @@ STEP_LAT = 0.005
 STEP_LON = 0.006
 FILENAME = "waze_alerts.json"
 
-# Ejecución
+# Ejecucion del proceso de scraping
 alerts = crawl_area(TOP, BOTTOM, LEFT, RIGHT, STEP_LAT, STEP_LON, delay=2, filename=FILENAME)
 logging.info(f"Total de alertas recolectadas: {len(alerts)}")
 logging.info(f"Datos finales guardados en {FILENAME}")

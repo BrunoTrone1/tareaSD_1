@@ -5,21 +5,22 @@ from pymongo import MongoClient
 from datetime import datetime
 import logging
 
-# Configuración de logging
+# Configuracion del sistema de logs
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s - %(message)s')
 
-# Configuración desde entorno
+# Lectura de variables de entorno o valores por defecto
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:admin@localhost:27017/?authSource=admin")
 MONGO_DB = os.environ.get("MONGO_DB", "waze_db")
 MONGO_COLLECTION = os.environ.get("MONGO_COLLECTION", "alerts")
 JSON_FILE_PATH = os.environ.get("JSON_FILE_PATH", "waze_alerts.json")
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 30))
 
-# Conexión
+# Conexion a MongoDB
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]
 collection = db[MONGO_COLLECTION]
 
+# Funcion para cargar el archivo JSON de alertas
 def cargar_alertas():
     try:
         with open(JSON_FILE_PATH, "r") as f:
@@ -29,6 +30,7 @@ def cargar_alertas():
         logging.error(f"No se pudo cargar el archivo JSON: {e}")
         return []
 
+# Funcion que inserta nuevas alertas en Mongo si no existen aun
 def insertar_alertas_nuevas():
     nuevas = 0
     data = cargar_alertas()
@@ -36,6 +38,7 @@ def insertar_alertas_nuevas():
         alert_uuid = alert.get("uuid")
         if not alert_uuid:
             continue
+        # Verifica si la alerta ya existe en la base de datos
         if not collection.find_one({"uuid": alert_uuid}):
             alert["ingreso_mongo"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
@@ -48,6 +51,7 @@ def insertar_alertas_nuevas():
             logging.debug(f"Alerta ya existente: {alert_uuid}")
     return nuevas
 
+# Bucle principal: ejecuta el chequeo periodicamente
 if __name__ == "__main__":
     logging.info("Servicio de almacenamiento iniciado.")
     while True:
