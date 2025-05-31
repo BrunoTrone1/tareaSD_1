@@ -1,105 +1,97 @@
-import random
-import time
-import numpy as np
-import logging
 import os
-import redis
-import json
+import requests
+import time
+import logging
 from pymongo import MongoClient
-from datetime import datetime
+from random import gauss, choice
 
-# Configuracion del logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# Lectura de variables de entorno
-MONGO_URI = os.environ["MONGO_URI"]
-MONGO_DB = os.environ["MONGO_DB"]
-MONGO_COLLECTION = os.environ["MONGO_COLLECTION"]
-DISTRIBUCION = os.environ.get("DISTRIBUCION", "uniforme")
-LAMBDA = float(os.environ.get("LAMBDA", 2))
-INTERVALO_UNIFORME = float(os.environ.get("INTERVALO_UNIFORME", 1))
-REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
-REDIS_DB = int(os.environ.get("REDIS_DB", 0))
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 # Conexion a MongoDB
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[MONGO_DB]
-collection = db[MONGO_COLLECTION]
+mongoClient = MongoClient(
+    host="mongo",
+    port=27017,
+    username="admin",
+    password="admin",
+    authSource="admin",
+    authMechanism='SCRAM-SHA-256'
+)
 
-# Conexion a Redis
-redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
+MONGO_DB = os.getenv("MONGO_DB", "waze_db")
+MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "alerts")
 
-# Obtiene un evento aleatorio desde MongoDB
-def obtener_evento_random():
-    total = collection.count_documents({})
-    if total == 0:
-        return None
-    random_index = random.randint(0, total - 1)
-    evento = collection.find().skip(random_index).limit(1)[0]
+def get_events_db():
+    db = mongoClient[MONGO_DB]
+    events_collection = db[MONGO_COLLECTION]
+    eventos = list(events_collection.find({}))
+    logging.info(f"Recuperados {len(eventos)} eventos de la base de datos '{MONGO_DB}', colección '{MONGO_COLLECTION}'.")
+    return eventos
 
-    # Convierte el ObjectId a string y elimina el campo _id
-    evento["id"] = str(evento["_id"])
-    del evento["_id"]
-    return evento
+def get_events_random(m=10000):
+    events = get_events_db()
+    if not events:
+        logging.warning("No se encontraron eventos para el generador aleatorio.")
+        return []
+    result = list(events)
+    while len(result) < m:
+        result.append(choice(events))
+    logging.info(f"Generados {len(result)} eventos aleatorios.")
+    return result
 
-# Envia un evento a Redis (usa el ID como clave)
-def enviar_evento(evento):
-    evento_id = evento["id"]
-    evento_convertido = convertir_datetime_a_string(evento)
+def get_events_normal(m=10000):
+    events = get_events_db()
+    n = len(events)
+    if n == 0:
+        logging.warning("No se encontraron eventos para el generador normal.")
+        return []
+    mean = n / 2
+    stddev = n / 6
+    weighted_events = []
+    while len(weighted_events) < m:
+        idx = int(gauss(mean, stddev))
+        idx = max(0, min(n - 1, idx))
+        weighted_events.append(events[idx])
+    logging.info(f"Generados {len(weighted_events)} eventos con distribución normal.")
+    return weighted_events
 
-    try:
-        data = redis_client.get(evento_id)
+def make_requests_events(events):
+    for i, event in enumerate(events, 1):
+        event.pop("_id", None)
+        try:
+            resp = requests.post("http://cache_api:9090", json=event)
+            if resp.status_code == 200:
+                logging.info(f"[{i}/{len(events)}] Evento enviado correctamente al cache.")
+            else:
+                logging.warning(f"[{i}/{len(events)}] Error al enviar evento: {resp.status_code} - {resp.text}")
+        except Exception as e:
+            logging.error(f"[{i}/{len(events)}] Error al hacer request: {e}")
+        time.sleep(0.2)
 
-        if data:
-            logging.info(f"[CACHE HIT] Evento {evento_id} encontrado")
+def main():
+    modo = os.getenv("MODO_DISTRIBUCION", "aleatorio")
+    multiplicador = int(os.getenv("MULTIPLICADOR", "1"))
+
+    logging.info(f"[Generador] MODO: {modo.upper()} x{multiplicador}")
+
+    eventos_db = get_events_db()
+    if len(eventos_db) == 0:
+        logging.warning("[Generador] No hay eventos en la base de datos.")
+        return
+
+    for ciclo in range(multiplicador):
+        logging.info(f"Iniciando ciclo {ciclo+1}/{multiplicador}")
+        if modo == "normal":
+            eventos = get_events_normal()
         else:
-            redis_client.set(evento_id, json.dumps(evento_convertido))  # Guarda sin TTL
-            logging.info(f"[CACHE MISS] Evento {evento_id} no encontrado, guardado en Redis")
-    except redis.exceptions.ResponseError as e:
-        if "OOM command not allowed when used memory" in str(e):
-            logging.error("Redis alcanzo el limite de memoria")
-        else:
-            logging.error(f"Error al interactuar con Redis: {e}")
+            eventos = get_events_random()
+        make_requests_events(eventos)
+        logging.info(f"Ciclo {ciclo+1} finalizado.")
 
-# Bucle principal del generador de trafico
-def generador_trafico():
-    logging.info(f"Generador iniciado con distribucion {DISTRIBUCION}")
-    contador = 0
-    while True:
-        # Calcula el intervalo segun la distribucion seleccionada
-        if DISTRIBUCION == "poisson":
-            intervalo = np.random.exponential(1 / LAMBDA)
-        elif DISTRIBUCION == "uniforme":
-            intervalo = INTERVALO_UNIFORME
-        else:
-            raise ValueError("Distribucion no valida")
-
-        evento = obtener_evento_random()
-        if evento:
-            enviar_evento(evento)
-            contador += 1
-            if contador % 10 == 0:
-                logging.info(f"[INFO] Eventos enviados: {contador}")
-        else:
-            logging.warning("No hay eventos en MongoDB")
-
-        time.sleep(intervalo)
-
-# Convierte objetos datetime a string en estructuras anidadas
-def convertir_datetime_a_string(data):
-    if isinstance(data, dict):
-        return {key: convertir_datetime_a_string(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [convertir_datetime_a_string(item) for item in data]
-    elif isinstance(data, datetime):
-        return data.isoformat()
-    else:
-        return data
-
-# Inicio del generador
 if __name__ == "__main__":
-    try:
-        generador_trafico()
-    except KeyboardInterrupt:
-        logging.info("Generador detenido")
+    logging.info("Esperando 1 segundo para que los servicios estén listos...")
+    time.sleep(1)
+    main()

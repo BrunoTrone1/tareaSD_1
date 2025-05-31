@@ -40,7 +40,6 @@ def insertar_alertas_nuevas():
             continue
         # Verifica si la alerta ya existe en la base de datos
         if not collection.find_one({"uuid": alert_uuid}):
-            alert["ingreso_mongo"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
                 collection.insert_one(alert)
                 nuevas += 1

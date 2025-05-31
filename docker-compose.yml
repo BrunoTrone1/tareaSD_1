@@ -4,19 +4,19 @@ services:
     container_name: mongo
     restart: always
     ports:
-      - "27017:27017"  # Puerto expuesto localmente
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
     volumes:
-      - mongo_data:/data/db  # Volumen persistente
+      - mongo_data:/data/db
 
   mongo-express:  # Interfaz web para MongoDB
     image: mongo-express:latest
     container_name: mongo-express
     restart: always
     ports:
-      - "8081:8081"  # Acceso web a la interfaz
+      - "8081:8081"
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: admin
@@ -33,7 +33,7 @@ services:
     restart: always
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu  # Politica de reemplazo LFU
+    command: redis-server --maxmemory 3mb --maxmemory-policy allkeys-lfu
 
   redis-commander:  # Interfaz web para Redis
     image: rediscommander/redis-commander:latest
@@ -62,10 +62,9 @@ services:
   almacenamiento:  # Servicio que inserta alertas nuevas en MongoDB
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: almacenamiento
     volumes:
-      - ./waze_alerts.json:/app/waze_alerts.json:ro  # Monta el archivo de alertas
+      - ./waze_alerts.json:/app/waze_alerts.json:ro
       - ./almacenamiento:/app/almacenamiento
     environment:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
@@ -73,9 +72,9 @@ services:
       - MONGO_COLLECTION=alerts
       - JSON_FILE_PATH=waze_alerts.json
       - CHECK_INTERVAL=30
+    command: ["python", "almacenamiento/almacenamiento.py"]
     depends_on:
       - mongo
-    command: ["python", "almacenamiento/almacenamiento.py"]
 
   generador_trafico:  # Genera trafico hacia Redis desde Mongo
     build:
@@ -99,5 +98,20 @@ services:
       - mongo
       - redis
 
+  cache_api:  # API Cache que atiende peticiones para servir eventos cacheados
+    build:
+      context: .
+    container_name: cache_api
+    restart: on-failure
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "9090:9090"  # Cambia puerto si usas otro
+    command: ["python", "cache/cache_api.py"]
+    depends_on:
+      - redis
+
 volumes:
-  mongo_data:  # Volumen persistente para los datos de MongoDB
+  mongo_data:
