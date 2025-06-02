@@ -5,3 +5,7 @@ mongo_data/
 waze_alerts.json
 plot.py
 grafico_cache.png
+*.json
+*.csv
+mongo_data/
+data/

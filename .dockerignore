@@ -11,3 +11,7 @@ mongo_data/
 .gitignore
 plot.py
 grafico_cache.png
+*.json
+*.csv
+mongo_data/
+data/

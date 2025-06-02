@@ -113,5 +113,38 @@ services:
     depends_on:
       - redis
 
+  pig:
+    image: fluddeni/hadoop-pig
+    container_name: pig
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/data
+      - ./pig-hadoop:/pig-hadoop
+    networks:
+      - hadoopnet
+
+  conversor:
+    build:
+      context: .
+    container_name: conversor
+    depends_on:
+      - mongo
+    volumes:
+      - ./data:/data
+    environment:
+      - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
+      - MONGO_DB=waze_db
+      - MONGO_COLLECTION=alerts
+      - OUTPUT_PATH=/data/eventos_limpios.tsv
+    command: ["python", "utils/conversor.py"]
+
 volumes:
   mongo_data:
+  hadoop_data:
+
+networks:
+  hadoopnet:
+    driver: bridge
+
+  
