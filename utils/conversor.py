@@ -19,8 +19,9 @@ fields = ["uuid", "type", "subtype", "street", "nearBy", "location.x", "location
 with open(output_path, "w", newline='', encoding="utf-8") as f:
     writer = csv.writer(f, delimiter="\t")
     writer.writerow(fields)  # Escribir encabezado
-
+    # Iterar sobre los documentos en la colección y escribirlos en el archivo
     for doc in collection.find():
+        # Asegurarse de que los campos existen y manejar valores por defecto
         row = [
             doc.get("uuid", ""),
             doc.get("type", ""),
@@ -31,4 +32,5 @@ with open(output_path, "w", newline='', encoding="utf-8") as f:
             doc.get("location", {}).get("y", ""),
             doc.get("pubMillis", ""),
         ]
+        # Escribir la fila en el archivo
         writer.writerow(row)

@@ -53,18 +53,18 @@ El sistema está compuesto por los siguientes servicios (contenedores):
 tareaSD_1/
 ├── almacenamiento/
 │   ├── almacenamiento.py
-│   ├── waze_alerts_test.json
-│   └── waze_alerts_test copy.json
 ├── cache/
 │   ├── cache.py
 │   ├── cache_api.py
-│   └── __init__.py
 ├── generador_trafico/
 │   └── generador_trafico.py
 ├── scraper/
 │   └── scraper.py
 ├── utils/
 │   └── conversor.py
+├── pig-hadoop/
+│   └── analisis_incidentes.pig  
+│   └── filtro.pig  
 ├── waze_alerts.json
 ├── requirements.txt
 ├── docker-compose.yml
@@ -112,7 +112,64 @@ tareaSD_1/
 
 ---
 
-## Configuración y variables de entorno
+### Uso de Pig
+
+1. **Construye las imágenes de todos los servicios, incluido Pig:**
+   ```sh
+   docker-compose build
+   ```
+
+2. **Levanta todos los servicios en segundo plano:**
+   ```sh
+   docker-compose up -d
+   ```
+
+3. **Accede a una terminal interactiva dentro del contenedor Pig:**
+   ```sh
+   docker exec -it pig bash
+   ```
+
+4. **Crea el directorio `/data` en el sistema de archivos distribuido de Hadoop (HDFS):**
+   ```sh
+   hdfs dfs -mkdir -p /data
+   ```
+
+5. **Sube el archivo `eventos_limpios.tsv` al HDFS para su procesamiento:**
+   ```sh
+   hdfs dfs -put /eventos_limpios.tsv /data/
+   ```
+
+6. **Ejecuta el script Pig para filtrar o transformar los datos:**
+   ```sh
+   pig pig-hadoop/filtro.pig
+   ```
+
+7. **Descarga el resultado del filtro desde HDFS al sistema de archivos local del contenedor:**
+   ```sh
+   hdfs dfs -get /output/hazards
+   ```
+
+8. **Ejecuta el script Pig para análisis agregados sobre los datos:**
+   ```sh
+   pig -f /pig-hadoop/analisis_incidentes.pig
+   ```
+
+9. **Descarga los resultados de los análisis desde HDFS a la carpeta `/data/` del contenedor:**
+   ```sh
+   hdfs dfs -get /output/incidentes_por_comuna /data/
+   hdfs dfs -get /output/incidentes_por_tipo /data/
+   hdfs dfs -get /output/incidentes_por_dia /data/
+   ```
+
+---
+
+**Resumen:**  
+Esta sección te guía para procesar y analizar los datos exportados desde MongoDB usando Hadoop Pig dentro de un contenedor Docker, permitiendo análisis avanzados y extracción de resultados en archivos locales.
+
+---
+
+## Configuración y variables de entorno 
+To Do!
 
 Las variables de entorno principales se configuran en `docker-compose.yml` para cada servicio. Ejemplo para el generador de tráfico:
 

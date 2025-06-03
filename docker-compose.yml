@@ -113,7 +113,7 @@ services:
     depends_on:
       - redis
 
-  pig:
+  pig: # Servicio de procesamiento de datos con Apache Pig
     image: fluddeni/hadoop-pig
     container_name: pig
     stdin_open: true
@@ -124,7 +124,7 @@ services:
     networks:
       - hadoopnet
 
-  conversor:
+  conversor: # Servicio que convierte datos de MongoDB a un formato limpio
     build:
       context: .
     container_name: conversor
@@ -139,11 +139,11 @@ services:
       - OUTPUT_PATH=/data/eventos_limpios.tsv
     command: ["python", "utils/conversor.py"]
 
-volumes:
+volumes: # Persistencia de datos
   mongo_data:
   hadoop_data:
 
-networks:
+networks: # Definición de red para servicios de Hadoop
   hadoopnet:
     driver: bridge
 
