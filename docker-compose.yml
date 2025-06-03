@@ -70,8 +70,8 @@ services:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
       - MONGO_DB=waze_db
       - MONGO_COLLECTION=alerts
-      - JSON_FILE_PATH=waze_alerts.json
-      - CHECK_INTERVAL=30
+      - JSON_FILE_PATH=almacenamiento/waze_alerts_test.json
+      - CHECK_INTERVAL=10
     command: ["python", "almacenamiento/almacenamiento.py"]
     depends_on:
       - mongo

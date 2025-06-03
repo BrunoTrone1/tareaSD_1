@@ -13,7 +13,7 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://admin:admin@localhost:27017/?
 MONGO_DB = os.environ.get("MONGO_DB", "waze_db")
 MONGO_COLLECTION = os.environ.get("MONGO_COLLECTION", "alerts")
 JSON_FILE_PATH = os.environ.get("JSON_FILE_PATH", "waze_alerts.json")
-CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 30))
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 10))
 
 # Conexion a MongoDB
 client = MongoClient(MONGO_URI)
