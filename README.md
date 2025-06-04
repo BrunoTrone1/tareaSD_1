@@ -146,7 +146,7 @@ tareaSD_1/
 
 7. **Descarga el resultado del filtro desde HDFS al sistema de archivos local del contenedor:**
    ```sh
-   hdfs dfs -get /output/hazards
+   hdfs dfs -get /output/hazards /data/
    ```
 
 8. **Ejecuta el script Pig para análisis agregados sobre los datos:**
