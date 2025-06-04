@@ -136,7 +136,7 @@ tareaSD_1/
 
 5. **Sube el archivo `eventos_limpios.tsv` al HDFS para su procesamiento:**
    ```sh
-   hdfs dfs -put /eventos_limpios.tsv /data/
+   hdfs dfs -put data/eventos_limpios.tsv /data/
    ```
 
 6. **Ejecuta el script Pig para filtrar o transformar los datos:**
@@ -146,7 +146,7 @@ tareaSD_1/
 
 7. **Descarga el resultado del filtro desde HDFS al sistema de archivos local del contenedor:**
    ```sh
-   hdfs dfs -get /output/hazards
+   hdfs dfs -get /output/hazards /data/
    ```
 
 8. **Ejecuta el script Pig para análisis agregados sobre los datos:**
@@ -159,6 +159,7 @@ tareaSD_1/
    hdfs dfs -get /output/incidentes_por_comuna /data/
    hdfs dfs -get /output/incidentes_por_tipo /data/
    hdfs dfs -get /output/incidentes_por_dia /data/
+   hdfs dfs -get /output/incidentes_por_dia_comuna_tipo /data/
    ```
 
 ---
