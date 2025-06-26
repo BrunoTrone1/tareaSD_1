@@ -46,7 +46,7 @@ services:
     depends_on:
       - redis
 
-  scraper:  # Servicio que descarga datos desde la API de Waze
+  scraper:
     build:
       context: .
     container_name: scraper
@@ -58,6 +58,9 @@ services:
     command: ["python", "-m", "scraper.scraper"]
     depends_on:
       - mongo
+    volumes:
+      - ./almacenamiento:/app/almacenamiento
+
 
   almacenamiento:  # Servicio que inserta alertas nuevas en MongoDB
     build:
@@ -70,33 +73,34 @@ services:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
       - MONGO_DB=waze_db
       - MONGO_COLLECTION=alerts
-      - JSON_FILE_PATH=almacenamiento/waze_alerts_test.json
-      - CHECK_INTERVAL=10
+      - CHECK_INTERVAL=30  # Intervalo de chequeo en segundos
+      - JSON_FILE_PATH=almacenamiento/waze_alerts.json
+      - OUTPUT_PATH=almacenamiento/eventos.tsv
     command: ["python", "almacenamiento/almacenamiento.py"]
     depends_on:
       - mongo
 
-  generador_trafico:  # Genera trafico hacia Redis desde Mongo
-    build:
-      context: .
-    container_name: generador_trafico
-    restart: on-failure
-    environment:
-      - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
-      - MONGO_DB=waze_db
-      - MONGO_COLLECTION=alerts
-      - DISTRIBUCION=poisson
-      - LAMBDA=2
-      - INTERVALO_UNIFORME=1
-      - CACHE_POLICY=LFU
-      - CACHE_CAPACITY=100
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-    command: ["python", "-m", "generador_trafico.generador_trafico"]
-    depends_on:
-      - mongo
-      - redis
+  # generador_trafico:  # Genera trafico hacia Redis desde Mongo
+  #   build:
+  #     context: .
+  #   container_name: generador_trafico
+  #   restart: on-failure
+  #   environment:
+  #     - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
+  #     - MONGO_DB=waze_db
+  #     - MONGO_COLLECTION=alerts
+  #     - DISTRIBUCION=poisson
+  #     - LAMBDA=2
+  #     - INTERVALO_UNIFORME=1
+  #     - CACHE_POLICY=LFU
+  #     - CACHE_CAPACITY=100
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - REDIS_DB=0
+  #   command: ["python", "-m", "generador_trafico.generador_trafico"]
+  #   depends_on:
+  #     - mongo
+  #     - redis
 
   cache_api:  # API Cache que atiende peticiones para servir eventos cacheados
     build:
@@ -123,21 +127,6 @@ services:
       - ./pig-hadoop:/pig-hadoop
     networks:
       - hadoopnet
-
-  conversor: # Servicio que convierte datos de MongoDB a un formato limpio
-    build:
-      context: .
-    container_name: conversor
-    depends_on:
-      - mongo
-    volumes:
-      - ./data:/data
-    environment:
-      - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
-      - MONGO_DB=waze_db
-      - MONGO_COLLECTION=alerts
-      - OUTPUT_PATH=/data/eventos_limpios.tsv
-    command: ["python", "utils/conversor.py"]
 
 volumes: # Persistencia de datos
   mongo_data:

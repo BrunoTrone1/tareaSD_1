@@ -42,13 +42,13 @@ def clean_alert(alert):
     return alert
 
 # Guarda las alertas en un archivo JSON
-def save_alerts_to_json(alerts, filename="almacenamiento/waze_alerts_test.json"):
+def save_alerts_to_json(alerts, filename="waze_alerts.json"):
     with open(filename, "w", encoding='utf-8') as f:
         json.dump(alerts, f, ensure_ascii=False, indent=4)
     logging.info(f"Datos guardados en {filename} (total {len(alerts)} alertas)")
 
 # Recorre un area geográfica dividida en celdas, descargando alertas por zona
-def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, filename="almacenamiento/waze_alerts_test.json"):
+def crawl_area(top, bottom, left, right, step_lat=0.01, step_lon=0.01, delay=1, filename="waze_alerts.json"):
     all_alerts = []
 
     # Si el archivo ya existe, lo carga
@@ -100,7 +100,7 @@ LEFT = -70.85
 RIGHT = -70.5
 STEP_LAT = 0.005
 STEP_LON = 0.006
-FILENAME = "almacenamiento/waze_alerts_test.json"
+FILENAME = "almacenamiento/waze_alerts.json"
 
 # Ejecucion del proceso de scraping
 alerts = crawl_area(TOP, BOTTOM, LEFT, RIGHT, STEP_LAT, STEP_LON, delay=2, filename=FILENAME)

@@ -9,3 +9,6 @@ grafico_cache.png
 *.csv
 mongo_data/
 data/
+mongo_data
+*.tsv
+data_test
