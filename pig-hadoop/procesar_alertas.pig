@@ -1,13 +1,13 @@
+SET default_parallel 1;
+SET pig.exec.type local;
+
 alerts = LOAD '/data/eventos_limpios.tsv'
   USING PigStorage('\t')
   AS (uuid:chararray, type:chararray, subtype:chararray, street:chararray, nearBy:chararray, x:double, y:double, pubMillis:long);
 
+-- Solo filtramos los que tienen coordenadas, tiempo y uuid válidos
 valid_alerts = FILTER alerts BY
   uuid IS NOT NULL AND uuid != '' AND
-  type IS NOT NULL AND type != '' AND
-  subtype IS NOT NULL AND subtype != '' AND
-  street IS NOT NULL AND street != '' AND
-  nearBy IS NOT NULL AND nearBy != '' AND
   x IS NOT NULL AND
   y IS NOT NULL AND
   pubMillis IS NOT NULL;

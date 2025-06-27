@@ -16,3 +16,6 @@ grafico_cache.png
 data/
 *.tsv
 eventos.tsv
+output/
+eventos.tsv
+eventos_limpios.tsv

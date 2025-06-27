@@ -16,7 +16,7 @@ MONGO_DB = os.environ.get("MONGO_DB", "waze_db")
 MONGO_COLLECTION = os.environ.get("MONGO_COLLECTION", "alerts")
 JSON_FILE_PATH = os.environ.get("JSON_FILE_PATH", "almacenamiento/waze_alerts.json")
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 10))
-OUTPUT_PATH = os.environ.get("OUTPUT_PATH", "almacenamiento/eventos.tsv")
+OUTPUT_PATH = os.environ.get("OUTPUT_PATH", "/data/eventos_limpios.tsv")
 
 # Conexion a MongoDB
 client = MongoClient(MONGO_URI)

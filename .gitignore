@@ -12,3 +12,7 @@ data/
 mongo_data
 *.tsv
 data_test
+output
+eventos.tsv
+eventos_limpios.tsv
+pig-hadoop/eventos_limpios.tsv
