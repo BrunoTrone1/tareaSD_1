@@ -38,11 +38,25 @@ def get_alerts(top, bottom, left, right):
 
 # Limpia una alerta eliminando comentarios innecesarios
 def clean_alert(alert):
-    alert.pop('comments', None)
-    return alert
+    try:
+        return {
+            "uuid": alert["uuid"],
+            "type": alert["type"],
+            "subtype": alert.get("subtype", ""),
+            "street": alert.get("street", ""),
+            "nearBy": alert.get("nearBy", ""),
+            "location": {
+                "x": alert["location"]["x"],
+                "y": alert["location"]["y"]
+            },
+            "pubMillis": alert["pubMillis"]
+        }
+    except KeyError as e:
+        logging.warning(f"Alerta incompleta descartada (faltante {e}): {alert}")
+        return None
 
 # Guarda las alertas en un archivo JSON
-def save_alerts_to_json(alerts, filename="waze_alerts.json"):
+def save_alerts_to_json(alerts, filename="almacenamiento/waze_alerts.json"):
     with open(filename, "w", encoding='utf-8') as f:
         json.dump(alerts, f, ensure_ascii=False, indent=4)
     logging.info(f"Datos guardados en {filename} (total {len(alerts)} alertas)")

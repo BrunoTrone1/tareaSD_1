@@ -1,7 +1,7 @@
 SET default_parallel 1;
 SET pig.exec.type local;
 
-alerts = LOAD '/data/eventos_limpios.tsv'
+alerts = LOAD '/output/eventos_limpios.tsv'
   USING PigStorage('\t')
   AS (uuid:chararray, type:chararray, subtype:chararray, street:chararray, nearBy:chararray, x:double, y:double, pubMillis:long);
 
@@ -51,4 +51,4 @@ standardized = FOREACH grouped {
   GENERATE FLATTEN(first);
 };
 
-STORE standardized INTO '/output/hazards' USING PigStorage('\t');
+STORE standardized INTO '/output/eventos_procesados' USING PigStorage('\t');

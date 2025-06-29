@@ -69,14 +69,14 @@ services:
     volumes:
       - ./waze_alerts.json:/app/waze_alerts.json:ro
       - ./almacenamiento:/app/almacenamiento
-      - ./data:/data
+      - ./output:/output
     environment:
       - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
       - MONGO_DB=waze_db
       - MONGO_COLLECTION=alerts
       - CHECK_INTERVAL=30  # Intervalo de chequeo en segundos
       - JSON_FILE_PATH=almacenamiento/waze_alerts.json
-      - OUTPUT_PATH=/data/eventos_limpios.tsv
+      - OUTPUT_PATH=/output/eventos_limpios.tsv
     command: ["python", "almacenamiento/almacenamiento.py"]
     depends_on:
       - mongo
@@ -130,6 +130,28 @@ services:
     networks:
       - hadoopnet
     command: ["/pig-hadoop/run_pig.sh"]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
+    container_name: elasticsearch
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.0.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch 
 
 volumes: # Persistencia de datos
   mongo_data:

@@ -84,6 +84,9 @@ def insertar_alertas():
 def exportar_a_tsv():
     fields = ["uuid", "type", "subtype", "street", "nearBy", "location.x", "location.y", "pubMillis"]
     try:
+        if os.path.exists(OUTPUT_PATH):
+            logging.info(f"Archivo existente {OUTPUT_PATH} será sobrescrito.")
+
         with open(OUTPUT_PATH, "w", newline='', encoding="utf-8") as f:
             writer = csv.writer(f, delimiter="\t")
             writer.writerow(fields)  # encabezado
@@ -96,10 +99,12 @@ def exportar_a_tsv():
                     doc.get("nearBy", ""),
                     doc.get("location", {}).get("x", ""),
                     doc.get("location", {}).get("y", ""),
-                    doc.get("pubMillis", ""),
+                    doc.get("pubMillis", "")
                 ]
                 writer.writerow(row)
-        logging.info(f"Exportacion TSV completada: {OUTPUT_PATH}")
+
+        logging.info(f"Exportación TSV completada: {OUTPUT_PATH}")
+
     except Exception as e:
         logging.error(f"Error al exportar TSV: {e}")
 

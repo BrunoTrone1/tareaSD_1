@@ -2,7 +2,7 @@ SET default_parallel 1;
 SET pig.exec.type local;
 
 -- Cargar los datos limpios procesados
-hazards = LOAD '/output/hazards' USING PigStorage('\t')
+hazards = LOAD '/output/eventos_procesados' USING PigStorage('\t')
   AS (uuid:chararray, subtype:chararray, street:chararray, nearBy:chararray,
       x_norm:double, y_norm:double, timestamp:long);
 
@@ -28,10 +28,9 @@ conteo_por_comuna_tipo = FOREACH agrupado_por_comuna_tipo GENERATE
   COUNT(hazards) AS total_incidentes;
 STORE conteo_por_comuna_tipo INTO '/output/incidentes_por_comuna_y_tipo' USING PigStorage('\t');
 
--- 4. Ubicaciones más incidentadas (por coordenadas x/y normalizadas)
-agrupado_por_coordenadas = GROUP hazards BY (x_norm, y_norm);
-conteo_por_ubicacion = FOREACH agrupado_por_coordenadas GENERATE
-  group.x_norm AS x,
-  group.y_norm AS y,
+-- 4. Conteo total de incidentes por calle
+agrupado_por_calle = GROUP hazards BY street;
+conteo_por_calle = FOREACH agrupado_por_calle GENERATE
+  group AS calle,
   COUNT(hazards) AS total_incidentes;
-STORE conteo_por_ubicacion INTO '/output/incidentes_por_ubicacion' USING PigStorage('\t');
+STORE conteo_por_calle INTO '/output/incidentes_por_calle' USING PigStorage('\t');
