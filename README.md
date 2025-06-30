@@ -11,11 +11,7 @@ Este proyecto simula una plataforma distribuida para el análisis de tráfico ur
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Requisitos](#requisitos)
 - [Instrucciones de ejecución](#instrucciones-de-ejecución)
-- [Configuración y variables de entorno](#configuración-y-variables-de-entorno)
-- [Monitoreo de servicios](#monitoreo-de-servicios)
-- [Exportación de datos](#exportación-de-datos)
-- [Notas y recomendaciones](#notas-y-recomendaciones)
-- [Contribuciones](#contribuciones)
+- [Funcionamiento de la carga de archivos a Kibana](#funcionamiento-de-la-carga-de-archivos-a-Kibana)
 
 ---
 
@@ -24,15 +20,28 @@ Este proyecto simula una plataforma distribuida para el análisis de tráfico ur
 El sistema está compuesto por los siguientes servicios (contenedores):
 
 1. **MongoDB**: Base de datos NoSQL para almacenar eventos de tráfico.
+
 2. **Mongo Express**: Interfaz web para visualizar y administrar MongoDB.
+
 3. **Redis**: Sistema de caché en memoria para acelerar el acceso a eventos.
+
 4. **Redis Commander**: Interfaz web para administrar Redis.
-5. **Scraper**: Descarga eventos de tráfico desde la API de Waze (o datos simulados) y los almacena en MongoDB.
-6. **Almacenamiento**: Inserta nuevos eventos en MongoDB desde archivos JSON.
+
+5. **Scraper**: Descarga eventos de tráfico desde la API de Waze, seleccionando solo los campos relevantes de las alertas, y los almacena en MongoDB.
+
+6. **Almacenamiento**: Servicio encargado de limpiar la base de datos y los datos de alertas antes de la inserción, carga archivos JSON de alertas (como `waze_alerts.json`), y además descarga las alertas desde MongoDB para exportarlas a archivos TSV para análisis externo.
+
 7. **Generador de tráfico**: Lee eventos de MongoDB y los envía masivamente a la caché Redis, simulando tráfico real.
-8. **API de caché**: Servicio Flask que expone una API para almacenar y recuperar eventos en Redis.
-9. **Conversor**: Exporta eventos de MongoDB a un archivo TSV para análisis externo.
-10. **Pig**: Contenedor Hadoop Pig para procesamiento de datos (opcional/avanzado).
+
+8. **API de caché**: Servicio Flask que expone una API para almacenar y recuperar eventos en Redis con estadísticas de cacheo.
+
+9. **Pig (Hadoop Pig)**: Contenedor para procesamiento avanzado de datos usando scripts Pig sobre HDFS (Hadoop Distributed File System), que permite procesamiento distribuido y análisis a gran escala.
+
+10. **ElasticSearch**: Motor de búsqueda y análisis distribuido que indexa los datos para permitir consultas rápidas y agregaciones avanzadas.
+
+11. **Kibana**: Interfaz gráfica para visualizar y analizar los datos indexados en ElasticSearch mediante dashboards dinámicos y personalizables.
+
+Todos los servicios anteriores se ejecutan en contenedores Docker y se coordinan mediante Docker Compose, facilitando la instalación, configuración y escalabilidad del sistema completo.
 
 ---
 
@@ -42,8 +51,9 @@ El sistema está compuesto por los siguientes servicios (contenedores):
 - **Redis** y **Redis Commander**
 - **Python 3.13.3-slim** (Flask, requests, pymongo, redis, numpy, etc.)
 - **Docker** y **Docker Compose**
-- **Hadoop Pig** (opcional, para procesamiento avanzado)
-- **CSV/TSV Export** (conversor)
+- **Hadoop Pig** con **HDFS** (opcional, para procesamiento avanzado distribuido)
+- **ElasticSearch** y **Kibana** para indexación, búsqueda y visualización de datos
+- **Almacenamiento** que realiza limpieza de la base de datos, carga de alertas JSON y exportación de datos a TSV
 
 ---
 
@@ -58,28 +68,36 @@ tareaSD_1/
 │   ├── cache_api.py
 ├── generador_trafico/
 │   └── generador_trafico.py
+├── pig-hadoop/
+│   └── analisis_alertas.pig
+│   └── procesar_alertas.pig  
+│   └── run_pig.sh  
 ├── scraper/
 │   └── scraper.py
-├── utils/
-│   └── conversor.py
-├── pig-hadoop/
-│   └── analisis_incidentes.pig  
-│   └── filtro.pig  
-├── waze_alerts.json
-├── requirements.txt
+├── .dockerignore
+├── .gitignore
 ├── docker-compose.yml
 ├── dockerfile
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
 ---
 
 ## Requisitos
 
-- Docker y Docker Compose
-- Acceso a los puertos: 27017 (MongoDB), 8081 (Mongo Express), 6379 (Redis), 8082 (Redis Commander), 9090 (API de caché)
-- Python 3.13.3-slim (usado en los contenedores)
-- Recursos suficientes para varios contenedores simultáneos
+- Docker y Docker Compose instalados y configurados en el sistema.
+- Acceso a los siguientes puertos en la máquina anfitriona:
+  - 27017 para MongoDB
+  - 8081 para Mongo Express
+  - 6379 para Redis
+  - 8082 para Redis Commander
+  - 9090 para la API de caché Flask
+  - 9200 para ElasticSearch (si se utiliza)
+  - 5601 para Kibana (si se utiliza)
+- Python 3.13.3-slim como base en los contenedores Python.
+- Suficientes recursos (CPU, memoria y disco) para ejecutar múltiples contenedores simultáneamente.
+- Espacio en disco adecuado para almacenar los datos exportados y procesados, especialmente para HDFS y ElasticSearch.
 
 ---
 
@@ -102,137 +120,60 @@ tareaSD_1/
 
 3. **Carga datos iniciales:**
 
-   - Puedes usar el servicio `almacenamiento` para cargar eventos desde un archivo JSON (`waze_alerts.json` o `almacenamiento/waze_alerts_test.json`).
-   - O ejecuta el `scraper` para poblar la base de datos con datos simulados.
+   - El servicio almacenamiento realiza limpieza de la base de datos y prepara las alertas para su inserción.
+
+   - Además, descarga las alertas almacenadas en MongoDB y las exporta a archivos TSV para análisis externo.
+
+   - Puedes cargar eventos desde un archivo JSON usando este servicio.
+
+   - Alternativamente, ejecuta el servicio scraper para descargar y seleccionar solo los campos relevantes de las alertas directamente desde la network de Waze y cargar la base de datos.
 
 4. **Monitorea los servicios:**
 
-   - Mongo Express: [http://localhost:8081](http://localhost:8081)
-   - Redis Commander: [http://localhost:8082](http://localhost:8082)
+   - Mongo Express (Interfaz web para gestionar MongoDB, user y password admin:admin): [http://localhost:8081](http://localhost:8081)
+   - Redis Commander (Interfaz web para administrar Redis): [http://localhost:8082](http://localhost:8082)
+   - Kibana (Dashboard para visualizar y analizar datos en ElasticSearch): [http://localhost:5601](http://localhost:5601)
+   - Cache API (API Flask para gestión de caché en Redis):
+      - Endpoint principal para guardar eventos: `POST http://localhost:9090/`
+      - Consultar eventos cacheados y resultados de búsquedas: `GET http://localhost:9090/consultar?indice=hazards&tipo=match_all`
+      - Ver estadísticas básicas de caché: `GET http://localhost:9090/estadisticas`
+      - Ver estadísticas avanzadas (hits, misses, tiempos): `GET http://localhost:9090/estadisticas-avanzadas`
+   ---
 
----
+## Funcionamiento de la carga de archivos a Kibana
 
-### Uso de Pig
+Después de ejecutar docker-compose up --build y procesar los datos con Hadoop Pig, seguir estos pasos:
 
-1. **Construye las imágenes de todos los servicios, incluido Pig:**
-   ```sh
-   docker-compose build
-   ```
+    1. Procesamiento con Pig
+    - Los scripts Pig generan resultados agregados como archivos en carpetas locales dentro del contenedor (o en volúmenes compartidos), por ejemplo:
 
-2. **Levanta todos los servicios en segundo plano:**
-   ```sh
-   docker-compose up -d
-   ```
+      -  /output/incidentes_por_comuna/
 
-3. **Accede a una terminal interactiva dentro del contenedor Pig:**
-   ```sh
-   docker exec -it pig bash
-   ```
+      -  /output/incidentes_por_tipo/
 
-4. **Crea el directorio `/data` en el sistema de archivos distribuido de Hadoop (HDFS):**
-   ```sh
-   hdfs dfs -mkdir -p /data
-   ```
+      -  /output/incidentes_por_comuna_y_tipo/
 
-5. **Sube el archivo `eventos_limpios.tsv` al HDFS para su procesamiento:**
-   ```sh
-   hdfs dfs -put data/eventos_limpios.tsv /data/
-   ```
+      -  /output/incidentes_por_calle/
 
-6. **Ejecuta el script Pig para filtrar o transformar los datos:**
-   ```sh
-   pig pig-hadoop/filtro.pig
-   ```
+    2. Ubicación de archivos de salida
+    - En cada carpeta de salida hay uno o más archivos con nombre tipo part-r-00000 que contienen los datos resultantes en formato tabulado.
 
-7. **Descarga el resultado del filtro desde HDFS al sistema de archivos local del contenedor:**
-   ```sh
-   hdfs dfs -get /output/hazards /data/
-   ```
+    3. Cargar archivos a Elasticsearch usando Kibana
 
-8. **Ejecuta el script Pig para análisis agregados sobre los datos:**
-   ```sh
-   pig -f /pig-hadoop/analisis_incidentes.pig
-   ```
+       - Abre la interfaz de Kibana en http://localhost:5601
 
-9. **Descarga los resultados de los análisis desde HDFS a la carpeta `/data/` del contenedor:**
-   ```sh
-   hdfs dfs -get /output/incidentes_por_comuna /data/
-   hdfs dfs -get /output/incidentes_por_tipo /data/
-   hdfs dfs -get /output/incidentes_por_dia /data/
-   hdfs dfs -get /output/incidentes_por_dia_comuna_tipo /data/
-   ```
+       - Ve a la sección "Stack Management" > "Index Patterns" para crear un índice nuevo o selecciona uno existente.
 
----
+       - Usa la función "File Data Visualizer" o la opción de importación para subir el archivo part-r-00000 de la carpeta correspondiente (descargado o accedido desde el volumen compartido).
 
-**Resumen:**  
-Esta sección te guía para procesar y analizar los datos exportados desde MongoDB usando Hadoop Pig dentro de un contenedor Docker, permitiendo análisis avanzados y extracción de resultados en archivos locales.
+       - Durante la importación, define el nombre del índice en Elasticsearch donde quieres que se almacenen estos datos (ejemplo: incidentes_por_comuna).
 
----
+       - Kibana indexará los datos y podrás comenzar a crear visualizaciones y dashboards usando esos índices.
 
-## Configuración y variables de entorno 
-To Do!
+   4. Visualización
 
-Las variables de entorno principales se configuran en `docker-compose.yml` para cada servicio. Ejemplo para el generador de tráfico:
+       - Una vez indexados los datos, usa las herramientas de Kibana para crear gráficos, tablas y análisis interactivos basados en los datos de incidentes.
 
-```yaml
-  generador_trafico:
-    environment:
-      - MONGO_URI=mongodb://admin:admin@mongo:27017/?authSource=admin
-      - MONGO_DB=waze_db
-      - MONGO_COLLECTION=alerts
-      - DISTRIBUCION=poisson
-      - LAMBDA=2
-      - INTERVALO_UNIFORME=1
-      - CACHE_POLICY=LFU
-      - CACHE_CAPACITY=100
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-```
+       - Esto permite explorar los conteos por comuna, tipo de incidente, combinaciones, etc., facilitando el análisis urbano.
 
-Puedes modificar la política de caché, la distribución de generación de tráfico, los nombres de base de datos y colección, y otros parámetros desde aquí.
 
----
-
-## Monitoreo de servicios
-
-- **Mongo Express:** [http://localhost:8081](http://localhost:8081)
-- **Redis Commander:** [http://localhost:8082](http://localhost:8082)
-- **Logs de servicios:**  
-  Usa `docker logs <nombre_contenedor>` para ver los logs de cada servicio, por ejemplo:
-  ```sh
-  docker logs generador_trafico
-  docker logs cache_api
-  ```
-
----
-
-## Exportación de datos
-
-El servicio `conversor` permite exportar los eventos de MongoDB a un archivo TSV para análisis externo:
-
-- El archivo se genera en `/data/eventos_limpios.tsv` (dentro del volumen compartido).
-- Puedes modificar el nombre y ruta de salida con la variable `OUTPUT_PATH`.
-
----
-
-## Notas y recomendaciones
-
-- Si experimentas problemas de conexión, asegúrate de que todos los contenedores estén levantados y que los puertos no estén ocupados.
-- Si la caché de Redis se llena, revisa la política de reemplazo (`allkeys-lfu` por defecto) y el tamaño máximo configurado.
-- Puedes modificar los archivos JSON de alertas para probar distintos escenarios.
-- El generador de tráfico puede configurarse para usar distintas distribuciones y volúmenes de eventos.
-
----
-
-## Contribuciones
-
-¿Quieres mejorar el proyecto?  
-Abre un Pull Request o crea una Issue con tu propuesta.  
-Para desarrollos mayores, crea una rama con un nombre descriptivo.
-
----
-
-**Autor:**  
-Bruno Trone  
-Proyecto para la cátedra de Sistemas Distribuidos

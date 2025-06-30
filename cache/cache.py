@@ -1,5 +1,6 @@
 import redis
 import json
+import time
 
 # Clase que implementa un sistema de cache usando Redis nativo
 class SistemaCacheNativo:
@@ -22,3 +23,29 @@ class SistemaCacheNativo:
         else:
             print(f"[CACHE MISS] Evento con clave {key} no encontrado en cache.")
             return None
+        
+    def get_all_keys(self):
+        return self.redis.keys("*")
+
+    def get_ttl(self, key):
+        return self.redis.ttl(key)
+    
+    def registrar_hit(self, key):
+        self.redis.hincrby(f"stats:{key}", "hits", 1)
+
+    def registrar_miss(self, key):
+        self.redis.hincrby(f"stats:{key}", "misses", 1)
+
+    def registrar_tiempo(self, key, tiempo_ms):
+        self.redis.hset(f"stats:{key}", "ultimo_tiempo_ms", round(tiempo_ms, 2))
+
+    def obtener_estadisticas(self):
+        claves = self.redis.keys("stats:*")
+        resultado = []
+        for clave in claves:
+            stats = self.redis.hgetall(clave)
+            resultado.append({
+                "clave": clave.replace("stats:", ""),
+                **stats
+            })
+        return resultado

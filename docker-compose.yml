@@ -46,7 +46,7 @@ services:
     depends_on:
       - redis
 
-  scraper:
+  scraper: # Servicio que scrapea alertas de Waze y las almacena en MongoDB
     build:
       context: .
     container_name: scraper
@@ -118,7 +118,7 @@ services:
     depends_on:
       - redis
 
-  pig:
+  pig: # Servicio de Pig para procesar datos
     image: fluddeni/hadoop-pig
     container_name: pig
     stdin_open: true
@@ -131,7 +131,7 @@ services:
       - hadoopnet
     command: ["/pig-hadoop/run_pig.sh"]
 
-  elasticsearch:
+  elasticsearch: # Servicio de Elasticsearch para indexar y buscar eventos
     image: docker.elastic.co/elasticsearch/elasticsearch:9.0.0
     container_name: elasticsearch
     deploy:
@@ -145,7 +145,7 @@ services:
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
 
-  kibana:
+  kibana: # Servicio de Kibana para visualizar datos en Elasticsearch
     image: docker.elastic.co/kibana/kibana:9.0.0
     container_name: kibana
     ports:
